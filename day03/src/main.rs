@@ -1,8 +1,9 @@
+use std::collections::HashSet;
 use std::fs;
 
-fn path_coords(wire_path: &[&str]) -> Vec<(i32, i32)> {
+fn path_coords(wire_path: &[&str]) -> HashSet<(i32, i32)> {
     let (mut x, mut y) = (0, 0);
-    let mut coords = vec![];
+    let mut coords = HashSet::new();
     for line in wire_path {
         let mut chars = line.chars();
         let (dx, dy) = match chars.next().unwrap() {
@@ -15,16 +16,18 @@ fn path_coords(wire_path: &[&str]) -> Vec<(i32, i32)> {
         let length: i32 = chars.as_str().parse().unwrap();
         for _ in 0..length {
             (x, y) = (x + dx, y + dy);
-            coords.push((x, y));
+            coords.insert((x, y));
         }
     }
     coords
 }
 
-fn closest_intersection(coords1: &[(i32, i32)], coords2: &[(i32, i32)]) -> Option<(i32, i32)> {
+fn closest_intersection(
+    coords1: &HashSet<(i32, i32)>,
+    coords2: &HashSet<(i32, i32)>,
+) -> Option<(i32, i32)> {
     coords1
-        .iter()
-        .filter(|&x| coords2.contains(x))
+        .intersection(&coords2)
         .min_by(|(x1, y1), (x2, y2)| (x1.abs() + y1.abs()).cmp(&(x2.abs() + y2.abs())))
         .copied()
 }
@@ -70,7 +73,8 @@ mod tests {
             (-2, 0),
             (-2, -1),
             (-2, -2),
-        ];
+        ]
+        .into();
         assert_eq!(actual, expected);
     }
 
