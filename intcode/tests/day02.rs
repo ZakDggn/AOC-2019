@@ -1,4 +1,5 @@
-use test_utils::assert_memory_eq;
+use intcode::Program;
+use test_utils::{assert_memory_eq, read_file};
 
 #[test]
 fn examples() {
@@ -22,13 +23,14 @@ fn examples() {
 fn output(mut memory: Vec<i32>, noun: i32, verb: i32) -> i32 {
     memory[1] = noun;
     memory[2] = verb;
-    intcode::run(&mut memory, "".as_bytes(), Vec::new());
-    memory[0]
+    let mut program = Program::new(memory);
+    program.run("".as_bytes(), Vec::new());
+    program.memory()[0]
 }
 
 #[test]
 fn answers() {
-    let memory = intcode::read_file("../day02/input").unwrap();
+    let memory = read_file("../day02/input").unwrap();
     assert_eq!(output(memory.clone(), 12, 2), 9581917);
     assert_eq!(output(memory.clone(), 25, 5), 19690720);
 }
