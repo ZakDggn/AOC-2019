@@ -29,12 +29,49 @@ fn highest_signal(program: &Program, phases: [i32; 5]) -> i32 {
     *outputs.iter().max().unwrap()
 }
 
-fn main() {
+fn solve() -> (i32, i32) {
     let program = Program::from_file("input").unwrap();
-
     let part1 = highest_signal(&program, [0, 1, 2, 3, 4]);
-    println!("{part1}");
-
     let part2 = highest_signal(&program, [5, 6, 7, 8, 9]);
+    (part1, part2)
+}
+
+fn main() {
+    let (part1, part2) = solve();
+    println!("{part1}");
     println!("{part2}");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn run_with_input_simple() {
+        let mut program = Program::from_file("../day07/input").unwrap();
+        assert!(!program.run_with_input(0, Vec::new()));
+        assert!(program.run_with_input(0, Vec::new()));
+    }
+
+    #[test]
+    fn run_with_input_many() {
+        let mut program = Program::from_file("../day07/input").unwrap();
+        assert!(!program.run_with_input(5, Vec::new()));
+        for _ in 0..9 {
+            assert!(!program.run_with_input(0, Vec::new()));
+        }
+        assert!(program.run_with_input(0, Vec::new()));
+    }
+
+    #[test]
+    fn examples() {
+        todo!()
+    }
+
+    #[test]
+    fn answers() {
+        let (part1, part2) = solve();
+        assert_eq!(part1, 21760);
+        assert_eq!(part2, 69816958);
+    }
 }

@@ -5,3 +5,6 @@ edition = "2021"
 
 [dependencies.intcode]
 path = "../intcode"
+
+[dev-dependencies.test_utils]
+path = "../test_utils"

@@ -1,6 +1,3 @@
-use std::path::Path;
-use std::{fs, io};
-
 use intcode::Program;
 
 pub fn assert_memory_eq(memory: &[i32], expected: &[i32]) {
@@ -15,13 +12,4 @@ pub fn assert_output_eq(memory: &[i32], input: &str, expected: &str) {
     program.run(input.as_bytes(), &mut output);
     let output = String::from_utf8(output).unwrap();
     assert_eq!(output, expected);
-}
-
-pub fn read_file<T: AsRef<Path>>(file_path: T) -> io::Result<Vec<i32>> {
-    let memory = fs::read_to_string(file_path)?
-        .trim()
-        .split(',')
-        .map(|x| x.parse().unwrap())
-        .collect();
-    Ok(memory)
 }

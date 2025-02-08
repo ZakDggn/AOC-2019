@@ -1,0 +1,3 @@
+[workspace]
+members = ["intcode", "day*", "test_utils"]
+resolver = "2"

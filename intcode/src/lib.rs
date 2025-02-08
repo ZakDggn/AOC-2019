@@ -4,6 +4,15 @@ use std::{
     path::Path,
 };
 
+pub fn read_program_file<T: AsRef<Path>>(file_path: T) -> io::Result<Vec<i32>> {
+    let memory = fs::read_to_string(file_path)?
+        .trim()
+        .split(',')
+        .map(|x| x.parse().unwrap())
+        .collect();
+    Ok(memory)
+}
+
 enum ParamMode {
     Position,
     Immediate,
@@ -36,11 +45,7 @@ impl Program {
     }
 
     pub fn from_file<T: AsRef<Path>>(file_path: T) -> io::Result<Program> {
-        let memory = fs::read_to_string(file_path)?
-            .trim()
-            .split(',')
-            .map(|x| x.parse().unwrap())
-            .collect();
+        let memory = read_program_file(file_path)?;
         Ok(Self::new(memory))
     }
 
