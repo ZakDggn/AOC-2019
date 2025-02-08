@@ -4,13 +4,22 @@ use std::{
     path::Path,
 };
 
+enum ParamMode {
+    Position,
+    Immediate,
+}
+
 struct ParamModes(u32);
 
 impl ParamModes {
-    fn next(&mut self) -> u8 {
-        let mode = (self.0 % 10) as u8;
+    fn next(&mut self) -> ParamMode {
+        let mode = self.0 % 10;
         self.0 /= 10;
-        mode
+        match mode {
+            0 => ParamMode::Position,
+            1 => ParamMode::Immediate,
+            _ => panic!("unknown parameter mode {mode}"),
+        }
     }
 }
 
@@ -69,12 +78,11 @@ impl Program {
         }
     }
 
-    fn get_param(&self, offset: usize, mode: u8) -> i32 {
+    fn get_param(&self, offset: usize, mode: ParamMode) -> i32 {
         let value = self.memory[self.ip + offset];
         match mode {
-            0 => self.memory[usize::try_from(value).unwrap()],
-            1 => value,
-            _ => panic!("unknown parameter mode {mode}"),
+            ParamMode::Position => self.memory[usize::try_from(value).unwrap()],
+            ParamMode::Immediate => value,
         }
     }
 
