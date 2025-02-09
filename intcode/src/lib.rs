@@ -68,16 +68,16 @@ impl Program {
     /// Returns true if program halts or false if program requires more input.
     pub fn run_with_input<W: Write>(&mut self, input: i32, mut writer: W) -> bool {
         let reader = input.to_string().into_bytes();
-        let mut input_provided = false;
+        let mut input_used = false;
         loop {
             let instruction = self.memory[self.ip];
             if instruction == 99 {
                 return true;
             } else if instruction == 3 {
-                if input_provided {
+                if input_used {
                     return false;
                 }
-                input_provided = true;
+                input_used = true;
             }
             self.execute_instruction(reader.as_slice(), &mut writer);
         }
