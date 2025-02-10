@@ -1,6 +1,6 @@
 use intcode::Program;
 
-fn output(mut memory: Vec<i32>, noun: i32, verb: i32) -> i32 {
+fn output(mut memory: Vec<i64>, noun: i64, verb: i64) -> i64 {
     memory[1] = noun;
     memory[2] = verb;
     let mut program = Program::new(memory);

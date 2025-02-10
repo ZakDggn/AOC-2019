@@ -4,7 +4,7 @@ use std::{
     path::Path,
 };
 
-pub fn read_program_file<T: AsRef<Path>>(file_path: T) -> io::Result<Vec<i32>> {
+pub fn read_program_file<T: AsRef<Path>>(file_path: T) -> io::Result<Vec<i64>> {
     let memory = fs::read_to_string(file_path)?
         .trim()
         .split(',')
@@ -13,9 +13,11 @@ pub fn read_program_file<T: AsRef<Path>>(file_path: T) -> io::Result<Vec<i32>> {
     Ok(memory)
 }
 
+#[derive(PartialEq)]
 enum ParamMode {
     Position,
     Immediate,
+    Relative,
 }
 
 struct ParamModes(u32);
@@ -27,6 +29,7 @@ impl ParamModes {
         match mode {
             0 => ParamMode::Position,
             1 => ParamMode::Immediate,
+            2 => ParamMode::Relative,
             _ => panic!("unknown parameter mode {mode}"),
         }
     }
@@ -35,13 +38,18 @@ impl ParamModes {
 #[derive(Clone)]
 pub struct Program {
     ip: usize,
-    memory: Vec<i32>,
+    relative_base: usize,
+    memory: Vec<i64>,
 }
 
 impl Program {
     #[must_use]
-    pub fn new(memory: Vec<i32>) -> Program {
-        Program { ip: 0, memory }
+    pub fn new(memory: Vec<i64>) -> Program {
+        Program {
+            ip: 0,
+            relative_base: 0,
+            memory,
+        }
     }
 
     pub fn from_file<T: AsRef<Path>>(file_path: T) -> io::Result<Program> {
@@ -50,7 +58,7 @@ impl Program {
     }
 
     #[must_use]
-    pub fn memory(&self) -> &[i32] {
+    pub fn memory(&self) -> &[i64] {
         &self.memory
     }
 
@@ -66,7 +74,7 @@ impl Program {
 
     /// Run with provided input until program halts or requires more input.
     /// Returns true if program halts or false if program requires more input.
-    pub fn run_with_input<W: Write>(&mut self, input: i32, mut writer: W) -> bool {
+    pub fn run_with_input<W: Write>(&mut self, input: i64, mut writer: W) -> bool {
         let reader = input.to_string().into_bytes();
         let mut input_used = false;
         loop {
@@ -83,26 +91,42 @@ impl Program {
         }
     }
 
-    fn get_param(&self, offset: usize, mode: ParamMode) -> i32 {
-        let value = self.memory[self.ip + offset];
-        match mode {
-            ParamMode::Position => self.memory[usize::try_from(value).unwrap()],
-            ParamMode::Immediate => value,
+    fn get_param(&self, offset: usize, mode: ParamMode) -> i64 {
+        let mut value = self.memory[self.ip + offset];
+        if mode == ParamMode::Immediate {
+            return value;
         }
+        if mode == ParamMode::Relative {
+            value += i64::try_from(self.relative_base).unwrap();
+        }
+        let addr: usize = value.try_into().unwrap();
+
+        self.memory.get(addr).copied().unwrap_or(0)
     }
 
-    fn get_addr(&self, offset: usize) -> usize {
-        self.memory[self.ip + offset].try_into().unwrap()
+    fn get_addr(&self, offset: usize, mode: ParamMode) -> usize {
+        let mut addr = self.memory[self.ip + offset];
+        if mode == ParamMode::Relative {
+            addr += i64::try_from(self.relative_base).unwrap();
+        }
+        addr.try_into().unwrap()
+    }
+
+    fn write(&mut self, addr: usize, value: i64) {
+        if addr >= self.memory.len() {
+            self.memory.resize(addr + 1, 0);
+        }
+        self.memory[addr] = value;
     }
 
     fn do_binop<F>(&mut self, mut param_modes: ParamModes, f: F)
     where
-        F: Fn(i32, i32) -> i32,
+        F: Fn(i64, i64) -> i64,
     {
         let param1 = self.get_param(1, param_modes.next());
         let param2 = self.get_param(2, param_modes.next());
-        let addr = self.get_addr(3);
-        self.memory[addr] = f(param1, param2);
+        let addr = self.get_addr(3, param_modes.next());
+        self.write(addr, f(param1, param2));
     }
 
     fn execute_instruction<R, W>(&mut self, mut reader: R, mut writer: W)
@@ -126,11 +150,11 @@ impl Program {
             }
             // input
             3 => {
-                let addr = self.get_addr(1);
+                let addr = self.get_addr(1, param_modes.next());
                 let mut buf = String::new();
                 reader.read_line(&mut buf).unwrap();
                 let input = buf.trim().parse().unwrap();
-                self.memory[addr] = input;
+                self.write(addr, input);
                 self.ip += 2;
             }
             // output
@@ -161,13 +185,24 @@ impl Program {
             }
             // less than
             7 => {
-                self.do_binop(param_modes, |x, y| i32::from(x < y));
+                self.do_binop(param_modes, |x, y| i64::from(x < y));
                 self.ip += 4;
             }
             // equals
             8 => {
-                self.do_binop(param_modes, |x, y| i32::from(x == y));
+                self.do_binop(param_modes, |x, y| i64::from(x == y));
                 self.ip += 4;
+            }
+            // relative base offset
+            9 => {
+                let value = self.get_param(1, param_modes.next());
+                let abs_value: usize = value.abs().try_into().unwrap();
+                if value.is_negative() {
+                    self.relative_base -= abs_value;
+                } else {
+                    self.relative_base += abs_value;
+                }
+                self.ip += 2;
             }
             _ => panic!("Unknown opcode ({opcode}) at address {}", self.ip),
         }

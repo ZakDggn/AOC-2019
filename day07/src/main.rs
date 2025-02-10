@@ -2,7 +2,7 @@ use itertools::Itertools;
 
 use intcode::Program;
 
-fn run_amplifiers(program: &Program, phases: Vec<i32>) -> i32 {
+fn run_amplifiers(program: &Program, phases: Vec<i64>) -> i64 {
     let mut programs = Vec::new();
     for phase in phases {
         let mut program = program.clone();
@@ -21,7 +21,7 @@ fn run_amplifiers(program: &Program, phases: Vec<i32>) -> i32 {
     prev_output
 }
 
-fn highest_signal(program: &Program, phases: [i32; 5]) -> i32 {
+fn highest_signal(program: &Program, phases: [i64; 5]) -> i64 {
     let mut outputs = Vec::new();
     for permutation in phases.into_iter().permutations(5) {
         outputs.push(run_amplifiers(program, permutation));
@@ -29,7 +29,7 @@ fn highest_signal(program: &Program, phases: [i32; 5]) -> i32 {
     *outputs.iter().max().unwrap()
 }
 
-fn solve() -> (i32, i32) {
+fn solve() -> (i64, i64) {
     let program = Program::from_file("input").unwrap();
     let part1 = highest_signal(&program, [0, 1, 2, 3, 4]);
     let part2 = highest_signal(&program, [5, 6, 7, 8, 9]);
